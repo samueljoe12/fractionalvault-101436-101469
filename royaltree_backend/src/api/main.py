@@ -1,15 +1,15 @@
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, EmailStr
+from fastapi import status
 from typing import List, Optional, Union
 from datetime import datetime, timedelta
 import sqlite3
 import hashlib
 import secrets
 import os
-from fastapi.responses import JSONResponse
 
 # --- App Configuration ---
 app = FastAPI(
@@ -312,117 +312,246 @@ def db_health_check():
 
 # --- Auth Endpoints ---
 
+# --- Auth Request/Response Schemas ---
+
+# PUBLIC_INTERFACE
+class RegisterRequest(BaseModel):
+    """Schema for registration requests."""
+    username: str = Field(..., description="Unique username (3-30 chars)", min_length=3, max_length=30)
+    email: EmailStr = Field(..., description="Valid email address")
+    password: str = Field(..., description="Password (minimum 6 chars)", min_length=6)
+    role: str = Field(..., description="One of: creator, investor, admin")
+
+# PUBLIC_INTERFACE
+class RegisterResponse(UserPublic):
+    """Schema for a successful registration response."""
+
+# PUBLIC_INTERFACE
+class ErrorResponse(BaseModel):
+    """Schema for error detail objects."""
+    detail: str
+
+# PUBLIC_INTERFACE
+class LoginRequest(BaseModel):
+    """Schema for login requests (JSON alternative to form-data)."""
+    username: Optional[str] = Field(None, description="Username (or email)")
+    email: Optional[EmailStr] = Field(None, description="Email (or username)")
+    password: str = Field(..., description="Password")
+
+# PUBLIC_INTERFACE
+class LoginResponse(BaseModel):
+    """Schema for successful login."""
+    access_token: str = Field(..., description="Bearer token (access token) for future authenticated requests.")
+    token_type: str = Field(..., description="Token type (always 'bearer').")
+    role: str = Field(..., description="Role of the authenticated user (creator, investor, admin).")
+    username: str = Field(..., description="Username of the authenticated user.")
+    email: EmailStr = Field(..., description="Email of the authenticated user.")
+
+# PUBLIC_INTERFACE
+class LoginFormResponse(LoginResponse):
+    """Schema for login via form data."""
+
+# --- Registration Endpoint ---
+
 @app.post(
     "/auth/register",
     tags=["auth"],
-    response_model=UserPublic,
-    status_code=201,
-    summary="Register a new user (creator/investor/admin)",
-    description=(
-        "Register a new user (creator, investor, or admin).\n"
-        "**Accepts:** application/json ONLY.<br/>\n"
-        "**Request body:** Must be a flat object matching UserCreate fields: `{ \"username\": ..., \"email\": ..., \"role\": ..., \"password\": ... }`<br/>"
-        "- No 'user_json' key, stringified JSON, or nested object—just flat JSON.<br/>"
-        "**Content-Type application/json is required.**"
-        "<br/><br/>Returns the registered user (public view) on success.<br/>\n"
-        "HTTP 409 if username/email exists. HTTP 400 if fields are missing/invalid. HTTP 415 for wrong Content-Type.\n"
-        "\n**Example:**\n"
-        "```json\n"
-        "{\n  \"username\": \"johnny\",\n  \"email\": \"johnny@example.com\",\n  \"role\": \"creator\",\n  \"password\": \"supersecret\"\n}\n"
-        "```"
-    ),
+    response_model=RegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new user (creator, investor, or admin)",
+    description="""
+Register a new user. This endpoint expects a JSON body with all required fields.
+- Accepts: `application/json` only.
+- Roles allowed: "creator", "investor", "admin".
+
+**Example request:**
+```json
+{
+  "username": "johndoe",
+  "email": "johndoe@example.com",
+  "role": "creator",
+  "password": "mypass123"
+}
+```
+**Response:** The created user's public info.
+
+Response codes:
+- **201**: Registration successful.
+- **409**: Username or email already exists.
+- **400**: Validation error or unsupported role.
+- **415**: Wrong Content-Type (must be JSON).
+""",
     responses={
-        201: {"description": "User registered successfully", "model": UserPublic},
-        409: {"description": "Username or email already exists"},
-        400: {"description": "Invalid role or data"},
-        415: {"description": "Unsupported Media Type - Only application/json accepted"},
+        201: {"description": "Registration successful.", "model": RegisterResponse},
+        400: {"description": "Validation error or unsupported role", "model": ErrorResponse},
+        409: {"description": "Username or email already exists", "model": ErrorResponse},
+        415: {"description": "Unsupported Media Type - Only application/json accepted", "model": ErrorResponse},
     }
 )
 # PUBLIC_INTERFACE
-async def register(user: UserCreate, request: Request):
+async def register(user: RegisterRequest, request: Request):
     """
     PUBLIC_INTERFACE
-    Register a new user.
+    Register a new user (creator/investor/admin).
 
-    Request:
-        - Content-Type: application/json
-        - Body: { "username": str, "email": str, "role": "creator|investor|admin", "password": str }
+    Parameters:
+        - user: JSON request body (RegisterRequest schema)
+        - request: Starlette Request object (auto)
 
-    Returns:
-        UserPublic (id, username, email, role) — HTTP 201
+    Returns: RegisterResponse (user info) with HTTP 201 if successful.
+    Raises:
+        - 409 Conflict: if username or email is already registered
+        - 400 Bad Request: for invalid input or unsupported role
+        - 415 Unsupported Media Type: if Content-Type is not application/json
+
+    ---
+    Example request:
+        POST /auth/register
+        Header: Content-Type: application/json
+        Body: { "username": "...", "email": "...", "role": "...", "password": "..." }
+    Example response:
+        {
+          "id": 2,
+          "username": "...",
+          "email": "...",
+          "role": "..."
+        }
+    """
+    ctype = request.headers.get("content-type", "").split(";")[0].lower()
+    if ctype != "application/json":
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Content-Type must be application/json"
+        )
+    valid_roles = ("creator", "investor", "admin")
+    if user.role not in valid_roles:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+    conn = get_db_connection()
+    conflict = conn.execute(
+        "SELECT id FROM users WHERE username=? OR email=?",
+        (user.username, user.email)
+    ).fetchone()
+    if conflict:
+        conn.close()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username or email already exists")
+    hash_ = hash_password(user.password)
+    try:
+        cur = conn.execute(
+            "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
+            (user.username, user.email, hash_, user.role)
+        )
+        uid = cur.lastrowid
+        conn.commit()
+    finally:
+        conn.close()
+    return RegisterResponse(id=uid, username=user.username, email=user.email, role=user.role)
+
+# --- Login Endpoint ---
+
+@app.post(
+    "/auth/login",
+    tags=["auth"],
+    response_model=LoginResponse,
+    summary="Authenticate a user (login) and return an access token.",
+    description="""
+Authenticate a user and obtain an access token for future requests.
+
+Accepts either:
+- `application/json` POST:
+    - Body: `{ "username": "...", "password": "..." }` _or_ `{ "email": "...", "password": "..." }`
+- `application/x-www-form-urlencoded` (OAuth2):
+    - Fields: `username` (or `email`), `password`
+
+**Response:**
+- 200 OK: `{ "access_token": "...", "token_type": "bearer", "role": "...", "username": "...", "email": "..." }`
+- 400 Bad Request: Missing username/email or password.
+- 401 Unauthorized: Invalid credentials.
+
+**Notes:**
+- Either username or email (with password) must be provided.
+- Email is unique across users.
+
+**Frontend Integration Tips:**
+- Send as `application/json` for fetch/ajax.
+- Use `application/x-www-form-urlencoded` for HTML forms or OAuth2 clients.
+""",
+    responses={
+        200: {"description": "Login successful. Bearer token in response.", "model": LoginResponse},
+        400: {"description": "Missing username/email or password", "model": ErrorResponse},
+        401: {"description": "Invalid credentials", "model": ErrorResponse},
+    }
+)
+# PUBLIC_INTERFACE
+async def login(
+    request: Request
+):
+    """
+    PUBLIC_INTERFACE
+    Authenticate user by username/email and password, return bearer token.
+
+    Input:
+        - Request body (JSON): { "username": ..., "password": ... } or { "email": ..., "password": ... }
+        - OR Form data: username/password (OAuth2 standard)
+    Output:
+        - access_token: str
+        - token_type: "bearer"
+        - role, username, email for the authenticated user
 
     Errors:
-      - 409: username or email exists
-      - 400: invalid role or schema
-      - 415: content-type not application/json
+        - 400: username/email/password required
+        - 401: invalid credentials
 
-    NOTE:
-      - Only flat JSON is accepted. No 'user_json', no multipart, no form fields.
+    Example (JSON login):
+        POST /auth/login
+        Content-Type: application/json
+        {
+            "username": "test1",
+            "password": "testing1"
+        }
+    Example (form login):
+        POST /auth/login
+        Content-Type: application/x-www-form-urlencoded
+        username=test1&password=testing1
     """
-    print("DEBUG: Incoming /auth/register request", flush=True)
-    if request.headers.get("content-type", "").split(";")[0].lower() != "application/json":
-        print("DEBUG: Content-Type failure on /auth/register", flush=True)
-        raise HTTPException(
-            status_code=415, detail="Content-Type must be application/json"
-        )
-    if user.role not in ("creator", "investor", "admin"):
-        print("DEBUG: Invalid role on /auth/register", flush=True)
-        raise HTTPException(status_code=400, detail="Invalid role")
-    conn = get_db_connection()
-    if conn.execute(
-        "SELECT id FROM users WHERE username=? or email=?", (user.username, user.email)
-    ).fetchone():
-        conn.close()
-        print("DEBUG: Duplicate user/email on /auth/register", flush=True)
-        raise HTTPException(status_code=409, detail="Username or email already exists")
-    hash_ = hash_password(user.password)
-    cur = conn.execute(
-        "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
-        (user.username, user.email, hash_, user.role)
-    )
-    uid = cur.lastrowid
-    conn.commit()
-    conn.close()
-    print(f"DEBUG: Registered user {user.username} (id={uid})", flush=True)
-    return UserPublic(id=uid, username=user.username, email=user.email, role=user.role)
+    ctype = request.headers.get("content-type", "").lower()
+    identifier, password = None, None
 
-@app.post("/auth/login", tags=["auth"])
-async def login(request: Request):
-    """
-    PUBLIC_INTERFACE
-    Login endpoint: Accepts application/json or form data for login.
-    - Accepts either username or email for login (plus password).
-    - Returns a token for authenticated access.
-    """
-    print("DEBUG: Incoming /auth/login request", flush=True)
     try:
-        if request.headers.get("content-type", "").startswith("application/json"):
+        if ctype.startswith("application/json"):
             body = await request.json()
             identifier = body.get("username") or body.get("email")
             password = body.get("password")
-        else:
-            # fallback to form post (OAuth2PasswordRequestForm)
+        elif ctype.startswith("application/x-www-form-urlencoded"):
             form = await request.form()
             identifier = form.get("username") or form.get("email")
             password = form.get("password")
-    except Exception as e:
-        print("DEBUG: Error parsing /auth/login request body", flush=True)
-        raise HTTPException(status_code=400, detail="Invalid request format")
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Unsupported content-type for login. Use application/json or x-www-form-urlencoded."
+            )
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid request format for login.")
+
     if not identifier or not password:
-        raise HTTPException(status_code=400, detail="Username/email and password required")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username/email and password required")
+
     conn = get_db_connection()
-    # Support login with either username or email
     user = conn.execute(
         "SELECT * FROM users WHERE username=? OR email=?",
         (identifier, identifier)
     ).fetchone()
     conn.close()
     if not user or not verify_password(password, user["password_hash"]):
-        print("DEBUG: Invalid credentials on /auth/login", flush=True)
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = create_access_token(user["id"])
-    print(f"DEBUG: Successful login for user {identifier} (id={user['id']})", flush=True)
-    return {"access_token": token, "token_type": "bearer", "role": user["role"], "username": user["username"], "email": user["email"]}
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        role=user["role"],
+        username=user["username"],
+        email=user["email"]
+    )
 
 # --- Creator Endpoints ---
 
