@@ -302,7 +302,7 @@ def db_health_check():
     tags=["auth"],
     response_model=UserPublic,
     summary="Register a new user (creator/investor/admin)",
-    description="Handles user registration. Expects JSON request body that matches the UserCreate model. Do not nest as 'user_json'—fields must be flat JSON.",
+    description="Handles user registration. Expects JSON request body that matches the UserCreate model. Fields must be flat JSON (no nesting, no 'user_json').",
     responses={
         201: {"description": "User registered successfully", "model": UserPublic},
         409: {"description": "Username or email already exists"},
@@ -310,7 +310,7 @@ def db_health_check():
     }
 )
 # PUBLIC_INTERFACE
-def register(user: UserCreate):
+async def register(user: UserCreate):
     """
     PUBLIC_INTERFACE
     Registers a new user with a role: creator, investor, or admin.
@@ -326,20 +326,25 @@ def register(user: UserCreate):
     Returns the public user model on success.
     - 409 if username or email exists
     - 400 if role is invalid or input validation fails
+
+    Example curl:
+      curl -X POST https://<host>/auth/register -H 'Content-Type: application/json' -d '{"username":"foo","email":"foo@bar.com","role":"investor","password":"secretpass"}'
     """
     if user.role not in ("creator", "investor", "admin"):
         raise HTTPException(status_code=400, detail="Invalid role")
     conn = get_db_connection()
-    # Unique username/email
-    if conn.execute("SELECT id FROM users WHERE username=? or email=?", (user.username, user.email)).fetchone():
+    # Unique username/email check
+    if conn.execute(
+        "SELECT id FROM users WHERE username=? or email=?", (user.username, user.email)
+    ).fetchone():
         conn.close()
         raise HTTPException(status_code=409, detail="Username or email already exists")
     hash_ = hash_password(user.password)
-    cursor = conn.execute(
+    cur = conn.execute(
         "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
         (user.username, user.email, hash_, user.role)
     )
-    uid = cursor.lastrowid
+    uid = cur.lastrowid
     conn.commit()
     conn.close()
     return UserPublic(id=uid, username=user.username, email=user.email, role=user.role)
