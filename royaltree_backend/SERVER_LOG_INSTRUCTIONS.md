@@ -4,12 +4,19 @@ To troubleshoot frontend/backend integration and determine if HTTP requests (esp
 
 ## 1. Start the FastAPI (Uvicorn) Server with Verbose Logging
 
-If not already running, launch the backend on HTTPS, port 3001 (to match the frontend expectation) with a self-signed certificate:
+If not already running, **launch the backend on HTTPS, port 3001** (to match the frontend expectation) with a self-signed certificate:
+
 ```sh
 # Generate self-signed cert (if not yet present)
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl.key -out ssl.crt -subj "/CN=localhost"
+bash generate_selfsigned_cert.sh
 
 # Recommended RUN command (for cloud/dev or local)
+uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload \
+  --ssl-keyfile ssl.key --ssl-certfile ssl.crt --log-level debug
+```
+You can also run these commands manually if bash is not available:
+```sh
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl.key -out ssl.crt -subj "/CN=localhost"
 uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload --ssl-keyfile ssl.key --ssl-certfile ssl.crt --log-level debug
 ```
 - The API is then accessible at: **https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3001/**
