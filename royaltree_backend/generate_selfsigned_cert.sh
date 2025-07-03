@@ -1,6 +1,9 @@
 #!/bin/bash
 # Script to generate self-signed SSL cert/key for local/dev HTTPS FastAPI server
 
+# Make the script executable if not already
+chmod +x "$(readlink -f "$0")"
+
 CERT_FILE="ssl.crt"
 KEY_FILE="ssl.key"
 
