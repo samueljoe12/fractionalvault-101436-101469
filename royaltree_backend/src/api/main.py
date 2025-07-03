@@ -271,20 +271,21 @@ def landing_info():
         ]
     }
 
-@app.get("/health/db", tags=["public"])
+@app.get("/health/db", tags=["public"], summary="Database health check", description="Health check endpoint for the SQLite DB connection. Returns {'status': 'healthy'} if DB reachable, {'status': 'unhealthy'} with error otherwise.", response_model=dict)
 def db_health_check():
     """
     PUBLIC_INTERFACE
-    Database health check endpoint.
-    Returns {'status': 'healthy'} if DB is reachable.
+    Health check endpoint for the SQLite database. Attempts a simple query to verify connection.
+    Returns {"status": "healthy"} if DB is reachable and working, otherwise returns {"status": "unhealthy", "detail": "...error..."}
     """
     try:
         conn = get_db_connection()
+        # Attempt a trivial query to ensure DB is accessible
         conn.execute("SELECT 1")
         conn.close()
         return {"status": "healthy"}
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database error: {str(e)}")
+        return {"status": "unhealthy", "detail": str(e)}
 
 # --- Auth Endpoints ---
 
