@@ -301,11 +301,20 @@ def db_health_check():
     "/auth/register",
     tags=["auth"],
     response_model=UserPublic,
+    status_code=201,
     summary="Register a new user (creator/investor/admin)",
     description=(
-        "Handles user registration. Only accepts a flat JSON request body (not Form, not multipart). "
-        "Body must directly match UserCreate model fields (username, email, role, password)."
-        "No legacy 'user_json' or Form support. Content-Type must be application/json."
+        "Register a new user (creator, investor, or admin).\n"
+        "**Accepts:** application/json ONLY.<br/>\n"
+        "**Request body:** Must be a flat object matching UserCreate fields: `{ \"username\": ..., \"email\": ..., \"role\": ..., \"password\": ... }`\n"
+        "- No `user_json`, stringified, or nested objects allowed!\n"
+        "\nContent-Type application/json required. Object keys: username, email, role, password (all required).\n"
+        "\nReturns the registered user (public view) on success.<br/>\n"
+        "HTTP 409 if username/email exists. HTTP 400 if fields are missing/invalid. HTTP 415 for wrong Content-Type.\n"
+        "\n**Example:**\n"
+        "```json\n"
+        "{\n  \"username\": \"johnny\",\n  \"email\": \"johnny@example.com\",\n  \"role\": \"creator\",\n  \"password\": \"supersecret\"\n}\n"
+        "```\n"
     ),
     responses={
         201: {"description": "User registered successfully", "model": UserPublic},
@@ -315,43 +324,42 @@ def db_health_check():
     }
 )
 # PUBLIC_INTERFACE
-async def register(request: Request):
+async def register(user: UserCreate, request: Request):
     """
     PUBLIC_INTERFACE
-    Registers a new user (role: creator, investor, or admin).
-    Only accepts application/json Content-Type.
+    Register a new user (role: creator, investor, or admin).
 
-    Expects JSON payload:
-      {
-        "username": "...",
-        "email": "...",
-        "role": "creator|investor|admin",
-        "password": "..."
-      }
+    **Request must be Content-Type: application/json**
 
-    Returns the public user model on success.
-    - 409 if username or email exists
-    - 400 if role is invalid or input validation fails
-    - 415 if content type is not application/json
+    Expects body:
+        {
+            "username": "<string>",
+            "email": "<string email>",
+            "role": "creator|investor|admin",
+            "password": "<string>"
+        }
 
-    Example curl:
-      curl -X POST https://<host>/auth/register -H 'Content-Type: application/json' -d '{"username":"foo","email":"foo@bar.com","role":"investor","password":"secretpass"}'
+    Returns new public user model, with HTTP 201.
+
+    Errors:
+      - 409 if username or email exists
+      - 400 if role is invalid or schema validation fails (see examples)
+      - 415 if Content-Type is not application/json
+
+    Example request:
+      curl -X POST <host>/auth/register -H 'Content-Type: application/json' -d '{"username":"foo","email":"foo@bar.com","role":"investor","password":"secretpass"}'
+
+    Note: No support for application/x-www-form-urlencoded or string 'user_json' field.
     """
     if request.headers.get("Content-Type", "").split(";")[0] != "application/json":
         raise HTTPException(
-            status_code=415,
-            detail="Content-Type must be application/json"
+            status_code=415, detail="Content-Type must be application/json"
         )
-    data = await request.json()
-    try:
-        user = UserCreate(**data)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
-
+    # Pydantic handles JSON parsing and validation.
+    # But we enforce role validation manually, as role is a string field.
     if user.role not in ("creator", "investor", "admin"):
         raise HTTPException(status_code=400, detail="Invalid role")
     conn = get_db_connection()
-    # Unique username/email check
     if conn.execute(
         "SELECT id FROM users WHERE username=? or email=?", (user.username, user.email)
     ).fetchone():
@@ -365,7 +373,6 @@ async def register(request: Request):
     uid = cur.lastrowid
     conn.commit()
     conn.close()
-    # 201 Created as per OpenAPI
     return UserPublic(id=uid, username=user.username, email=user.email, role=user.role)
 
 @app.post("/auth/login", tags=["auth"])
