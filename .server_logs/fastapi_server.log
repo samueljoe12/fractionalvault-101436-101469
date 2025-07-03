@@ -1,35 +1,20 @@
 /home/kavia/workspace/code-generation/fractionalvault-101436-101469/royaltree_backend/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
 * 'orm_mode' has been renamed to 'from_attributes'
   warnings.warn(message, UserWarning)
-INFO:     Started server process [43912]
+INFO:     Started server process [49304]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:3001 (Press CTRL+C to quit)
-INFO:     100.64.4.167:54556 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:54552 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:54562 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:54564 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:54578 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:54584 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:52906 - "POST /auth/register HTTP/1.1" 409 Conflict
-INFO:     100.64.4.167:41202 - "POST /auth/register HTTP/1.1" 201 Created
-INFO:     100.64.4.167:51044 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51042 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51066 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51060 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51068 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51054 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51072 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51074 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51078 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51080 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:55668 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:55676 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:55686 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:55696 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:55708 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:55710 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:54734 - "POST /auth/register HTTP/1.1" 201 Created
-INFO:     100.64.4.167:50456 - "POST /auth/login HTTP/1.1" 200 OK
-INFO:     100.64.4.167:33062 - "GET /health/db HTTP/1.1" 200 OK
-INFO:     100.64.4.167:33078 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37288 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37274 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49418 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49432 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49434 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49444 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49454 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49482 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49468 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49496 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49512 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49516 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:49526 - "GET /openapi.json HTTP/1.1" 200 OK
