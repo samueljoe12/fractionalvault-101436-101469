@@ -302,48 +302,31 @@ def db_health_check():
     tags=["auth"],
     response_model=UserPublic,
     summary="Register a new user (creator/investor/admin)",
-    description=(
-        "Handles user registration with JSON or form data. "
-        "Frontend should prefer application/json but form data is also accepted."
-    ),
+    description="Handles user registration. Expects JSON request body that matches the UserCreate model. Do not nest as 'user_json'—fields must be flat JSON.",
     responses={
         201: {"description": "User registered successfully", "model": UserPublic},
         409: {"description": "Username or email already exists"},
         400: {"description": "Invalid role or data"}
     }
 )
-def register(
-    username: str = Form(None, description="Unique username"),
-    email: str = Form(None, description="User's valid email"),
-    role: str = Form(None, description="Role: creator, investor, or admin"),
-    password: str = Form(None, description="Password (min 6 chars)"),
-    user_json: UserCreate = None,
-):
+# PUBLIC_INTERFACE
+def register(user: UserCreate):
     """
     PUBLIC_INTERFACE
     Registers a new user with a role: creator, investor, or admin.
-    Accepts both JSON and form-encoded data for maximum frontend compatibility.
 
-    - **If application/json and full UserCreate fields are sent, parsed as JSON.**
-    - **If sent as form data, parses individual form fields.**
+    Expects a flat JSON payload:
+      {
+        "username": "...",
+        "email": "...",
+        "role": "creator|investor|admin",
+        "password": "..."
+      }
+
+    Returns the public user model on success.
+    - 409 if username or email exists
+    - 400 if role is invalid or input validation fails
     """
-    from pydantic import ValidationError
-
-    # Accept either JSON UserCreate or form fields
-    if user_json:
-        try:
-            user = user_json
-        except Exception:
-            raise HTTPException(status_code=400, detail="Malformed registration data.")
-    else:
-        # All fields must be present for form-based registration
-        if not (username and email and role and password):
-            raise HTTPException(status_code=400, detail="Missing registration fields.")
-        try:
-            user = UserCreate(username=username, email=email, role=role, password=password)
-        except ValidationError as ve:
-            raise HTTPException(status_code=400, detail=f"Invalid registration fields: {ve.errors()}")
-
     if user.role not in ("creator", "investor", "admin"):
         raise HTTPException(status_code=400, detail="Invalid role")
     conn = get_db_connection()

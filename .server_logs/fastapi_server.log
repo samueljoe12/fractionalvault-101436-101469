@@ -54,3 +54,19 @@ INFO:     100.64.4.167:43642 - "GET / HTTP/1.1" 200 OK
 INFO:     100.64.4.167:59934 - "GET /health/db HTTP/1.1" 200 OK
 INFO:     100.64.4.167:59346 - "GET /docs/websocket-usage HTTP/1.1" 200 OK
 INFO:     100.64.4.167:43550 - "POST /auth/register HTTP/1.1" 422 Unprocessable Entity
+INFO:     100.64.4.167:59958 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:59950 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:59974 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:59986 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60000 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60014 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60002 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60018 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60034 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60046 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60056 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:60072 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:58572 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:58584 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:58596 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:36122 - "POST /auth/register HTTP/1.1" 422 Unprocessable Entity
