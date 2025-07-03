@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Form
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
@@ -302,20 +302,26 @@ def db_health_check():
     tags=["auth"],
     response_model=UserPublic,
     summary="Register a new user (creator/investor/admin)",
-    description="Handles user registration. Expects JSON request body that matches the UserCreate model. Fields must be flat JSON (no nesting, no 'user_json').",
+    description=(
+        "Handles user registration. Only accepts a flat JSON request body (not Form, not multipart). "
+        "Body must directly match UserCreate model fields (username, email, role, password)."
+        "No legacy 'user_json' or Form support. Content-Type must be application/json."
+    ),
     responses={
         201: {"description": "User registered successfully", "model": UserPublic},
         409: {"description": "Username or email already exists"},
-        400: {"description": "Invalid role or data"}
+        400: {"description": "Invalid role or data"},
+        415: {"description": "Unsupported Media Type - Only application/json accepted"},
     }
 )
 # PUBLIC_INTERFACE
-async def register(user: UserCreate):
+async def register(request: Request):
     """
     PUBLIC_INTERFACE
-    Registers a new user with a role: creator, investor, or admin.
+    Registers a new user (role: creator, investor, or admin).
+    Only accepts application/json Content-Type.
 
-    Expects a flat JSON payload:
+    Expects JSON payload:
       {
         "username": "...",
         "email": "...",
@@ -326,10 +332,22 @@ async def register(user: UserCreate):
     Returns the public user model on success.
     - 409 if username or email exists
     - 400 if role is invalid or input validation fails
+    - 415 if content type is not application/json
 
     Example curl:
       curl -X POST https://<host>/auth/register -H 'Content-Type: application/json' -d '{"username":"foo","email":"foo@bar.com","role":"investor","password":"secretpass"}'
     """
+    if request.headers.get("Content-Type", "").split(";")[0] != "application/json":
+        raise HTTPException(
+            status_code=415,
+            detail="Content-Type must be application/json"
+        )
+    data = await request.json()
+    try:
+        user = UserCreate(**data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
+
     if user.role not in ("creator", "investor", "admin"):
         raise HTTPException(status_code=400, detail="Invalid role")
     conn = get_db_connection()
@@ -347,6 +365,7 @@ async def register(user: UserCreate):
     uid = cur.lastrowid
     conn.commit()
     conn.close()
+    # 201 Created as per OpenAPI
     return UserPublic(id=uid, username=user.username, email=user.email, role=user.role)
 
 @app.post("/auth/login", tags=["auth"])
