@@ -1,9 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Form, Request
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, EmailStr
-from fastapi import status
 from typing import List, Optional, Union
 from datetime import datetime, timedelta
 import sqlite3
@@ -356,8 +355,146 @@ class LoginFormResponse(LoginResponse):
 
 # --- Registration Endpoint ---
 
-# /auth/register and /auth/login endpoints REMOVED for clean reimplementation.
-# All registration and login logic have been removed.
+# --- Registration Endpoint ---
+
+# PUBLIC_INTERFACE
+@app.post(
+    "/auth/register",
+    tags=["auth"],
+    summary="Register user (creator, investor, admin)",
+    description="""
+    Register a new user (creator, investor, or admin). All fields required.  
+    Validates email and role strictly.  
+    CORS is fully aligned.  
+    Returns newly created user (public profile) on success, or descriptive error with details.""",
+    response_model=RegisterResponse,
+    responses={
+        201: {"description": "User successfully registered.", "model": RegisterResponse},
+        400: {"description": "Validation or registration error.", "model": ErrorResponse},
+        409: {"description": "Username/email already exists.", "model": ErrorResponse},
+    },
+)
+def register_user(
+    register_req: RegisterRequest = Body(..., description="User registration info (JSON)")
+):
+    # Validate role
+    ALLOWED_ROLES = {"creator", "investor", "admin"}
+    if register_req.role not in ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid role. Must be one of: {', '.join(ALLOWED_ROLES)}"
+        )
+
+    # Validate email (redundant: already EmailStr, but included for early failure)
+    if not register_req.email or "@" not in register_req.email:
+        raise HTTPException(status_code=400, detail="Invalid email address format.")
+
+    # Insert user (check duplicate username/email)
+    conn = get_db_connection()
+    try:
+        # Check user/email existence
+        username_exists = conn.execute(
+            "SELECT id FROM users WHERE username=?",
+            (register_req.username,)
+        ).fetchone()
+        if username_exists:
+            raise HTTPException(
+                status_code=409, detail="Username already registered."
+            )
+        email_exists = conn.execute(
+            "SELECT id FROM users WHERE email=?",
+            (register_req.email,)
+        ).fetchone()
+        if email_exists:
+            raise HTTPException(
+                status_code=409, detail="Email already registered."
+            )
+        # Create new user
+        pw_hash = hash_password(register_req.password)
+        cur = conn.execute(
+            "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
+            (
+                register_req.username,
+                register_req.email,
+                pw_hash,
+                register_req.role,
+            )
+        )
+        conn.commit()
+        user_row = conn.execute("SELECT * FROM users WHERE id=?", (cur.lastrowid,)).fetchone()
+    except HTTPException:
+        conn.close()
+        raise
+    except Exception:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=500, detail="Error occurred during registration.")
+    finally:
+        conn.close()
+
+    user_pub = UserPublic(
+        id=user_row["id"],
+        username=user_row["username"],
+        email=user_row["email"],
+        role=user_row["role"]
+    )
+    return JSONResponse(status_code=201, content=user_pub.model_dump())
+
+
+
+# PUBLIC_INTERFACE
+@app.post(
+    "/auth/login",
+    tags=["auth"],
+    summary="Login to obtain a bearer token",
+    description="""
+    Login user (creator/investor/admin) and receive a bearer token for subsequent authenticated requests.
+    Accepts JSON body for programmatic usage ({username/email, password}).  
+    Returns access_token, role, username, and email on success.
+    Robust error reporting (handles not found, wrong password, etc.)""",
+    response_model=LoginResponse,
+    responses={
+        200: {"description": "Login successful", "model": LoginResponse},
+        400: {"description": "Validation error", "model": ErrorResponse},
+        401: {"description": "Invalid credentials", "model": ErrorResponse},
+    }
+)
+def login_user(
+    login_req: LoginRequest = Body(..., description="Login (JSON): username or email and password.")
+):
+    if not login_req.password:
+        raise HTTPException(status_code=400, detail="Password required.")
+
+    if login_req.username:
+        user_field = "username"
+        user_value = login_req.username
+    elif login_req.email:
+        user_field = "email"
+        user_value = login_req.email
+    else:
+        raise HTTPException(status_code=400, detail="Either username or email required.")
+
+    conn = get_db_connection()
+    user = conn.execute(
+        f"SELECT * FROM users WHERE {user_field}=?",
+        (user_value,)
+    ).fetchone()
+    conn.close()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found.")
+
+    if not verify_password(login_req.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Incorrect password.")
+
+    access_token = create_access_token(user["id"])
+    resp = LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        role=user["role"],
+        username=user["username"],
+        email=user["email"]
+    )
+    return resp
 
 
 # --- Creator Endpoints ---
