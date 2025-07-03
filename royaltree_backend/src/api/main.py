@@ -448,110 +448,111 @@ async def register(user: RegisterRequest, request: Request):
 
 # --- Login Endpoint ---
 
+class LoginJsonRequest(BaseModel):
+    """
+    Schema for login requests (v2) - expects email and role, password optional (for demo).
+    """
+    email: EmailStr = Field(..., description="User's email (required)")
+    role: str = Field(..., description="Role must be 'creator', 'investor', or 'admin'")
+    # For demo purposes, if password is required add here: password: str = Field(..., min_length=1)
+
+class LoginJsonResponse(BaseModel):
+    """
+    Schema for login responses (v2).
+    """
+    access_token: str = Field(..., description="Bearer token (access token) for future authenticated requests.")
+    token_type: str = Field(..., description="Token type (always 'bearer').")
+    role: str = Field(..., description="Role of the authenticated user (creator, investor, admin).")
+    username: str = Field(..., description="Username of the authenticated user.")
+    email: EmailStr = Field(..., description="Email of the authenticated user.")
+
 @app.post(
     "/auth/login",
     tags=["auth"],
-    response_model=LoginResponse,
-    summary="Authenticate a user (login) and return an access token.",
+    response_model=LoginJsonResponse,
+    summary="Authenticate a user (login) and return an access token using email and role.",
     description="""
 Authenticate a user and obtain an access token for future requests.
 
-Accepts either:
-- `application/json` POST:
-    - Body: `{ "username": "...", "password": "..." }` _or_ `{ "email": "...", "password": "..." }`
-- `application/x-www-form-urlencoded` (OAuth2):
-    - Fields: `username` (or `email`), `password`
+This login endpoint **requires a JSON POST body**:
+- Body: `{ "email": "...", "role": "..." }`
 
-**Response:**
-- 200 OK: `{ "access_token": "...", "token_type": "bearer", "role": "...", "username": "...", "email": "..." }`
-- 400 Bad Request: Missing username/email or password.
-- 401 Unauthorized: Invalid credentials.
+**Required fields:** email and role.
+**Response:** 200 OK with access_token, role, username, email.
+**Errors:** 422 if a required field is missing, 401 for invalid credentials, 400 for invalid role.
 
 **Notes:**
-- Either username or email (with password) must be provided.
-- Email is unique across users.
-
-**Frontend Integration Tips:**
-- Send as `application/json` for fetch/ajax.
-- Use `application/x-www-form-urlencoded` for HTML forms or OAuth2 clients.
+- Username is not accepted anymore. Email and role must both match.
 """,
     responses={
-        200: {"description": "Login successful. Bearer token in response.", "model": LoginResponse},
-        400: {"description": "Missing username/email or password", "model": ErrorResponse},
+        200: {"description": "Login successful. Bearer token in response.", "model": LoginJsonResponse},
+        400: {"description": "Missing or invalid email/role", "model": ErrorResponse},
         401: {"description": "Invalid credentials", "model": ErrorResponse},
+        422: {"description": "Validation error", "model": ErrorResponse},
     }
 )
 # PUBLIC_INTERFACE
 async def login(
+    login_req: LoginJsonRequest,
     request: Request
 ):
     """
     PUBLIC_INTERFACE
-    Authenticate user by username/email and password, return bearer token.
-
+    Authenticate user by email and role. Returns bearer token.
     Input:
-        - Request body (JSON): { "username": ..., "password": ... } or { "email": ..., "password": ... }
-        - OR Form data: username/password (OAuth2 standard)
+        - login_req: LoginJsonRequest (email and role required; password may be required in production)
+        - request: FastAPI Request object
+
     Output:
         - access_token: str
         - token_type: "bearer"
         - role, username, email for the authenticated user
 
     Errors:
-        - 400: username/email/password required
+        - 422: email and role required
+        - 400: role invalid
         - 401: invalid credentials
 
-    Example (JSON login):
+    Example:
         POST /auth/login
         Content-Type: application/json
         {
-            "username": "test1",
-            "password": "testing1"
+            "email": "t1@example.com",
+            "role": "creator"
         }
-    Example (form login):
-        POST /auth/login
-        Content-Type: application/x-www-form-urlencoded
-        username=test1&password=testing1
+        --> Response:
+        {
+            "access_token": "...",
+            "token_type": "bearer",
+            "role": "creator",
+            "username": "test1",
+            "email": "t1@example.com"
+        }
     """
-    ctype = request.headers.get("content-type", "").lower()
-    identifier, password = None, None
-
-    try:
-        if ctype.startswith("application/json"):
-            body = await request.json()
-            identifier = body.get("username") or body.get("email")
-            password = body.get("password")
-        elif ctype.startswith("application/x-www-form-urlencoded"):
-            form = await request.form()
-            identifier = form.get("username") or form.get("email")
-            password = form.get("password")
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Unsupported content-type for login. Use application/json or x-www-form-urlencoded."
-            )
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid request format for login.")
-
-    if not identifier or not password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username/email and password required")
-
+    # FastAPI/Pydantic will enforce email and role presence/type at this point
+    valid_roles = {"creator", "investor", "admin"}
+    if login_req.role not in valid_roles:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Role must be one of: {', '.join(valid_roles)}"
+        )
     conn = get_db_connection()
     user = conn.execute(
-        "SELECT * FROM users WHERE username=? OR email=?",
-        (identifier, identifier)
+        "SELECT * FROM users WHERE email=? AND role=?",
+        (login_req.email, login_req.role)
     ).fetchone()
     conn.close()
-    if not user or not verify_password(password, user["password_hash"]):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials (wrong email or role)")
     token = create_access_token(user["id"])
-    return LoginResponse(
+    return LoginJsonResponse(
         access_token=token,
         token_type="bearer",
         role=user["role"],
         username=user["username"],
         email=user["email"]
     )
+
 
 # --- Creator Endpoints ---
 
