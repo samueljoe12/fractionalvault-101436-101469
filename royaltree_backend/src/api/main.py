@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Form, Body
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Form, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.responses import JSONResponse
@@ -9,6 +9,7 @@ import sqlite3
 import hashlib
 import secrets
 import os
+import logging
 
 # --- App Configuration ---
 app = FastAPI(
@@ -41,16 +42,31 @@ _frontend_origins = os.environ.get(
     "https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000"
 ).split(",")
 
+ALLOWED_ORIGINS = [origin.strip() for origin in _frontend_origins if origin.strip()]
+
 # DO NOT use '*' if allow_credentials is True! Protocol (https) and port must match UI.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in _frontend_origins if origin.strip()],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=600,
 )
+
+# Middleware: extra CORS diagnostics/logging for troubleshooting network/server connection errors.
+@app.middleware("http")
+async def debug_cors_logging_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    # Log details about each incoming request if origin isn't exactly allowed (by CORS) for easier troubleshooting
+    if origin and origin not in ALLOWED_ORIGINS:
+        logging.warning(
+            f"[CORS Warning] Request from disallowed origin: {origin!r} | Path: {request.url.path} | Method: {request.method}\n"
+            f"Allowed origins: {ALLOWED_ORIGINS}"
+        )
+    response = await call_next(request)
+    return response
 
 DB_PATH = os.environ.get("ROYALTREE_DB_PATH", "royaltree.sqlite3")
 ASSETS_UPLOAD_FOLDER = os.environ.get("ROYALTREE_ASSET_UPLOAD_DIR", "uploaded_assets")
@@ -272,11 +288,13 @@ def on_startup():
 # --- Public Endpoints ---
 
 @app.options("/{full_path:path}", tags=["public"])
-async def options_handler(full_path: str):
+async def options_handler(full_path: str, request: Request):
     """
     PUBLIC_INTERFACE
     CORS preflight handler for diagnostic. Ensures all OPTIONS requests receive a valid 200 OK response.
+    Logs details to assist in identifying network/CORS/connection errors.
     """
+    logging.info(f"[CORS Debug] Received OPTIONS preflight: path={request.url.path}, origin={request.headers.get('origin')}")
     return JSONResponse({"ok": True})
 
 @app.get("/", tags=["public"])
