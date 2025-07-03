@@ -1,22 +1,11 @@
 /home/kavia/workspace/code-generation/fractionalvault-101436-101469/royaltree_backend/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
 * 'orm_mode' has been renamed to 'from_attributes'
   warnings.warn(message, UserWarning)
-INFO:     Started server process [4932]
+INFO:     Started server process [5638]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:3001 (Press CTRL+C to quit)
-INFO:     100.64.4.167:45924 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45940 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45952 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45964 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45974 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45984 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45998 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:46014 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:46030 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:46038 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:59888 - "POST /auth/login HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [4932]
+INFO:     Finished server process [5638]

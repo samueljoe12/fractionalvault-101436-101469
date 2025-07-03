@@ -28,18 +28,21 @@ app = FastAPI(
     ]
 )
 
-# --- CORS Configuration (Aligned to Frontend on HTTPS port 3000) ---
+# --- CORS Configuration (Frontend Port/Protocol Alignment) ---
 
-# The ONLY allowed frontend is the HTTPS version, port 3000:
-# https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000
-# You may set FRONTEND_ORIGINS as a comma-separated list in your environment for overrides.
+# The frontend is typically hosted at HTTPS, port 3000 by default:
+#     https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000
+# If frontend port/protocol changes (e.g., you start React dev server on a different port),
+# update the environment variable FRONTEND_ORIGINS or set it via launch (comma-separated for multiple origins):
+#     FRONTEND_ORIGINS=https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:NEW_PORT
+# The backend will always read and enforce this list.
 
 _frontend_origins = os.environ.get(
     "FRONTEND_ORIGINS",
     "https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000"
 ).split(",")
 
-# DO NOT allow '*' if allow_credentials is True! Protocol (https) and port (3000) must match UI!
+# DO NOT use '*' if allow_credentials is True! Protocol (https) and port must match UI.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in _frontend_origins if origin.strip()],
