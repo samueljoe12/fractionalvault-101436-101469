@@ -306,15 +306,15 @@ def db_health_check():
     description=(
         "Register a new user (creator, investor, or admin).\n"
         "**Accepts:** application/json ONLY.<br/>\n"
-        "**Request body:** Must be a flat object matching UserCreate fields: `{ \"username\": ..., \"email\": ..., \"role\": ..., \"password\": ... }`\n"
-        "- No `user_json`, stringified, or nested objects allowed!\n"
-        "\nContent-Type application/json required. Object keys: username, email, role, password (all required).\n"
-        "\nReturns the registered user (public view) on success.<br/>\n"
+        "**Request body:** Must be a flat object matching UserCreate fields: `{ \"username\": ..., \"email\": ..., \"role\": ..., \"password\": ... }`<br/>"
+        "- No 'user_json' key, stringified JSON, or nested object—just flat JSON.<br/>"
+        "**Content-Type application/json is required.**"
+        "<br/><br/>Returns the registered user (public view) on success.<br/>\n"
         "HTTP 409 if username/email exists. HTTP 400 if fields are missing/invalid. HTTP 415 for wrong Content-Type.\n"
         "\n**Example:**\n"
         "```json\n"
         "{\n  \"username\": \"johnny\",\n  \"email\": \"johnny@example.com\",\n  \"role\": \"creator\",\n  \"password\": \"supersecret\"\n}\n"
-        "```\n"
+        "```"
     ),
     responses={
         201: {"description": "User registered successfully", "model": UserPublic},
@@ -327,36 +327,27 @@ def db_health_check():
 async def register(user: UserCreate, request: Request):
     """
     PUBLIC_INTERFACE
-    Register a new user (role: creator, investor, or admin).
+    Register a new user.
 
-    **Request must be Content-Type: application/json**
+    Request:
+        - Content-Type: application/json
+        - Body: { "username": str, "email": str, "role": "creator|investor|admin", "password": str }
 
-    Expects body:
-        {
-            "username": "<string>",
-            "email": "<string email>",
-            "role": "creator|investor|admin",
-            "password": "<string>"
-        }
-
-    Returns new public user model, with HTTP 201.
+    Returns:
+        UserPublic (id, username, email, role) — HTTP 201
 
     Errors:
-      - 409 if username or email exists
-      - 400 if role is invalid or schema validation fails (see examples)
-      - 415 if Content-Type is not application/json
+      - 409: username or email exists
+      - 400: invalid role or schema
+      - 415: content-type not application/json
 
-    Example request:
-      curl -X POST <host>/auth/register -H 'Content-Type: application/json' -d '{"username":"foo","email":"foo@bar.com","role":"investor","password":"secretpass"}'
-
-    Note: No support for application/x-www-form-urlencoded or string 'user_json' field.
+    NOTE:
+      - Only flat JSON is accepted. No 'user_json', no multipart, no form fields.
     """
-    if request.headers.get("Content-Type", "").split(";")[0] != "application/json":
+    if request.headers.get("content-type", "").split(";")[0].lower() != "application/json":
         raise HTTPException(
             status_code=415, detail="Content-Type must be application/json"
         )
-    # Pydantic handles JSON parsing and validation.
-    # But we enforce role validation manually, as role is a string field.
     if user.role not in ("creator", "investor", "admin"):
         raise HTTPException(status_code=400, detail="Invalid role")
     conn = get_db_connection()
