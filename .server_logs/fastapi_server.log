@@ -5,3 +5,52 @@ INFO:     Started server process [22164]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:3001 (Press CTRL+C to quit)
+INFO:     100.64.4.167:41400 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41430 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41416 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41442 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41458 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41460 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41476 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41482 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41494 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41502 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41504 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41518 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47938 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47940 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47952 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47954 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47956 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47960 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47962 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:47964 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41712 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41726 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41728 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41738 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41746 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41762 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41770 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41780 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41790 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41806 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41820 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41822 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41834 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41836 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41840 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41848 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:41858 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37280 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37308 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37296 - "HEAD /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37324 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37334 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37348 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37364 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:37370 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     100.64.4.167:43642 - "GET / HTTP/1.1" 200 OK
+INFO:     100.64.4.167:59934 - "GET /health/db HTTP/1.1" 200 OK
+INFO:     100.64.4.167:59346 - "GET /docs/websocket-usage HTTP/1.1" 200 OK
+INFO:     100.64.4.167:43550 - "POST /auth/register HTTP/1.1" 422 Unprocessable Entity
