@@ -6,7 +6,22 @@
 Launched the backend server in verbose (debug) mode with:
 
 ```sh
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+# Standard dev port (for matching frontend; use HTTPS)
+uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload --ssl-keyfile ssl.key --ssl-certfile ssl.crt --log-level debug
+```
+
+- To test with curl/Postman directly (bypassing CORS and browser env):
+
+```sh
+# Example (disable cert check for self-signed in dev)
+curl -k https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3001/
+curl -k -X POST https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3001/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"test1","email":"t1@example.com","role":"creator","password":"testing1"}'
+
+curl -k -X POST https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3001/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=test1&password=testing1"
 ```
 
 ### Observational Protocol

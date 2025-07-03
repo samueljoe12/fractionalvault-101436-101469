@@ -4,12 +4,19 @@ To troubleshoot frontend/backend integration and determine if HTTP requests (esp
 
 ## 1. Start the FastAPI (Uvicorn) Server with Verbose Logging
 
-If not already running, launch the backend with:
+If not already running, launch the backend on HTTPS, port 3001 (to match the frontend expectation) with a self-signed certificate:
 ```sh
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
-# or, e.g.:
-# uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload --log-level debug
+# Generate self-signed cert (if not yet present)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl.key -out ssl.crt -subj "/CN=localhost"
+
+# Recommended RUN command (for cloud/dev or local)
+uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload --ssl-keyfile ssl.key --ssl-certfile ssl.crt --log-level debug
 ```
+- The API is then accessible at: **https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3001/**
+- This configuration matches the frontend `.env` variable: `REACT_APP_API_BASE_URL=https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3001`
+- If you want to use a different port or HTTP only, make sure the frontend `.env` is also updated to match.
+
+# CORS: Check main.py for allowed origins! Make sure the backend allows the actual deployed frontend origin and protocol.
 
 This enables stdout log output for all incoming requests, CORS issues, errors, and stack traces.
 
