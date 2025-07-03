@@ -27,19 +27,18 @@ app = FastAPI(
     ]
 )
 
-# --- CORS Configuration (Strict: allow only the official frontend origin for credentials) ---
+# --- CORS Configuration (Aligned to Frontend on HTTPS port 3000) ---
 
-# The ONLY allowed frontend is the HTTPS version, port 4000:
-# https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:4000
+# The ONLY allowed frontend is the HTTPS version, port 3000:
+# https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000
+# You may set FRONTEND_ORIGINS as a comma-separated list in your environment for overrides.
 
-# You may optionally set FRONTEND_ORIGINS as a comma-separated list in your environment for overrides,
-# but default to only the production frontend origin (with HTTPS and proper port: 4000).
 _frontend_origins = os.environ.get(
     "FRONTEND_ORIGINS",
-    "https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:4000"
+    "https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000"
 ).split(",")
 
-# DO NOT allow '*' if allow_credentials is True! Protocol (https) and port (4000) must match UI!
+# DO NOT allow '*' if allow_credentials is True! Protocol (https) and port (3000) must match UI!
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in _frontend_origins if origin.strip()],

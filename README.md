@@ -8,8 +8,9 @@ This is the initial README file for the project.
 
 - The frontend expects the backend to run at:  
   ```https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3001```
+- The frontend is served at HTTPS and port **3000**.  
 - The backend **must be started with HTTPS, port 3001**, and a valid certificate.
-- The default (and recommended) launch workflow ensures an exact match.  
+- Ensure backend CORS is set to allow `https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000`
   _No changes needed to backend env/.env configuration or to frontend .env, as long as you use the below command._
 
 ---
