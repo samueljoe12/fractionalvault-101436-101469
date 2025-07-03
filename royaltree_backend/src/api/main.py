@@ -27,9 +27,17 @@ app = FastAPI(
     ]
 )
 
+# --- CORS Configuration (Fix: allow only frontend origin(s) when using credentials) ---
+
+# Determine allowed origins from environment or default
+_frontend_origins = os.environ.get(
+    "FRONTEND_ORIGINS", 
+    "https://vscode-internal-8323-beta.beta01.cloud.kavia.ai:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in _frontend_origins if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
