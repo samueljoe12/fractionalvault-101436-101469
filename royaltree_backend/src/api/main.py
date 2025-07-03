@@ -9,6 +9,7 @@ import sqlite3
 import hashlib
 import secrets
 import os
+from fastapi.responses import JSONResponse
 
 # --- App Configuration ---
 app = FastAPI(
@@ -45,6 +46,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 DB_PATH = os.environ.get("ROYALTREE_DB_PATH", "royaltree.sqlite3")
@@ -266,6 +269,14 @@ def on_startup():
 
 # --- Public Endpoints ---
 
+@app.options("/{full_path:path}", tags=["public"])
+async def options_handler(full_path: str):
+    """
+    PUBLIC_INTERFACE
+    CORS preflight handler for diagnostic. Ensures all OPTIONS requests receive a valid 200 OK response.
+    """
+    return JSONResponse({"ok": True})
+
 @app.get("/", tags=["public"])
 def landing_info():
     """
@@ -348,17 +359,21 @@ async def register(user: UserCreate, request: Request):
     NOTE:
       - Only flat JSON is accepted. No 'user_json', no multipart, no form fields.
     """
+    print("DEBUG: Incoming /auth/register request", flush=True)
     if request.headers.get("content-type", "").split(";")[0].lower() != "application/json":
+        print("DEBUG: Content-Type failure on /auth/register", flush=True)
         raise HTTPException(
             status_code=415, detail="Content-Type must be application/json"
         )
     if user.role not in ("creator", "investor", "admin"):
+        print("DEBUG: Invalid role on /auth/register", flush=True)
         raise HTTPException(status_code=400, detail="Invalid role")
     conn = get_db_connection()
     if conn.execute(
         "SELECT id FROM users WHERE username=? or email=?", (user.username, user.email)
     ).fetchone():
         conn.close()
+        print("DEBUG: Duplicate user/email on /auth/register", flush=True)
         raise HTTPException(status_code=409, detail="Username or email already exists")
     hash_ = hash_password(user.password)
     cur = conn.execute(
@@ -368,6 +383,7 @@ async def register(user: UserCreate, request: Request):
     uid = cur.lastrowid
     conn.commit()
     conn.close()
+    print(f"DEBUG: Registered user {user.username} (id={uid})", flush=True)
     return UserPublic(id=uid, username=user.username, email=user.email, role=user.role)
 
 @app.post("/auth/login", tags=["auth"])
@@ -376,13 +392,16 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
     PUBLIC_INTERFACE
     Login endpoint: returns a token for authenticated access.
     """
+    print("DEBUG: Incoming /auth/login request", flush=True)
     conn = get_db_connection()
     cursor = conn.execute("SELECT * FROM users WHERE username=?", (form.username,))
     user = cursor.fetchone()
     conn.close()
     if not user or not verify_password(form.password, user["password_hash"]):
+        print("DEBUG: Invalid credentials on /auth/login", flush=True)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token(user["id"])
+    print(f"DEBUG: Successful login for user {form.username} (id={user['id']})", flush=True)
     return {"access_token": token, "token_type": "bearer"}
 
 # --- Creator Endpoints ---
