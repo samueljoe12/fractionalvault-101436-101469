@@ -1,24 +1,7 @@
 /home/kavia/workspace/code-generation/fractionalvault-101436-101469/royaltree_backend/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
 * 'orm_mode' has been renamed to 'from_attributes'
   warnings.warn(message, UserWarning)
-INFO:     Started server process [5862]
+INFO:     Started server process [11523]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:3001 (Press CTRL+C to quit)
-INFO:     100.64.4.167:45078 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45088 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45102 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45104 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45122 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45132 - "HEAD /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45140 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45156 - "GET /docs HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45166 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:45178 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51664 - "GET / HTTP/1.1" 200 OK
-INFO:     100.64.4.167:51668 - "GET /health/db HTTP/1.1" 200 OK
-INFO:     100.64.4.167:58762 - "GET /docs/websocket-usage HTTP/1.1" 200 OK
-INFO:     100.64.4.167:39030 - "POST /auth/register HTTP/1.1" 400 Bad Request
-INFO:     100.64.4.167:34016 - "POST /auth/register HTTP/1.1" 200 OK
-INFO:     100.64.4.167:41306 - "POST /auth/login HTTP/1.1" 401 Unauthorized
-INFO:     100.64.4.167:37034 - "POST /auth/login HTTP/1.1" 200 OK
