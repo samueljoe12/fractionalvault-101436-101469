@@ -387,22 +387,42 @@ async def register(user: UserCreate, request: Request):
     return UserPublic(id=uid, username=user.username, email=user.email, role=user.role)
 
 @app.post("/auth/login", tags=["auth"])
-def login(form: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request):
     """
     PUBLIC_INTERFACE
-    Login endpoint: returns a token for authenticated access.
+    Login endpoint: Accepts application/json or form data for login.
+    - Accepts either username or email for login (plus password).
+    - Returns a token for authenticated access.
     """
     print("DEBUG: Incoming /auth/login request", flush=True)
+    try:
+        if request.headers.get("content-type", "").startswith("application/json"):
+            body = await request.json()
+            identifier = body.get("username") or body.get("email")
+            password = body.get("password")
+        else:
+            # fallback to form post (OAuth2PasswordRequestForm)
+            form = await request.form()
+            identifier = form.get("username") or form.get("email")
+            password = form.get("password")
+    except Exception as e:
+        print("DEBUG: Error parsing /auth/login request body", flush=True)
+        raise HTTPException(status_code=400, detail="Invalid request format")
+    if not identifier or not password:
+        raise HTTPException(status_code=400, detail="Username/email and password required")
     conn = get_db_connection()
-    cursor = conn.execute("SELECT * FROM users WHERE username=?", (form.username,))
-    user = cursor.fetchone()
+    # Support login with either username or email
+    user = conn.execute(
+        "SELECT * FROM users WHERE username=? OR email=?",
+        (identifier, identifier)
+    ).fetchone()
     conn.close()
-    if not user or not verify_password(form.password, user["password_hash"]):
+    if not user or not verify_password(password, user["password_hash"]):
         print("DEBUG: Invalid credentials on /auth/login", flush=True)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token(user["id"])
-    print(f"DEBUG: Successful login for user {form.username} (id={user['id']})", flush=True)
-    return {"access_token": token, "token_type": "bearer"}
+    print(f"DEBUG: Successful login for user {identifier} (id={user['id']})", flush=True)
+    return {"access_token": token, "token_type": "bearer", "role": user["role"], "username": user["username"], "email": user["email"]}
 
 # --- Creator Endpoints ---
 
